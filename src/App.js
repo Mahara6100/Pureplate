@@ -117,7 +117,7 @@ function App() {
       ) : (
         <div style={styles.successCard}>
           <h1 style={styles.title}>🎉Done!</h1>
-          <p style={{fontSize: "18px"}}>Thank you, <b style={{fontFamily:"cursive"}}>{name}</b>!</p>
+          <p style={{fontSize: "18px"}}>Thank you, <b style={{fontFamily:"monospace"}}>{name}</b>!</p>
           
           {luckyCode && (
             <div style={styles.codeDisplayBox}>
