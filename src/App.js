@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // 1. Initialize Supabase
-// Replace the second string with your full 'sb_publishable...' key from your screenshot
 const supabase = createClient(
   "https://fueahltjaebeberasvye.supabase.co",
   "sb_publishable_dLJU-Q5qjwjQQhX7bFUQvA_Byv4T6zC"
@@ -11,6 +10,7 @@ const supabase = createClient(
 function App() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [luckyCode, setLuckyCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -22,7 +22,6 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Update these URLs with your Cloudinary links
   const webBG = "https://res.cloudinary.com/dpvmewh9g/image/upload/v1775560048/WEDSITE_BACKGROUND_HORI_f1uqmi.png";
   const mobileBG = "https://res.cloudinary.com/dpvmewh9g/image/upload/v1775565539/WEDSITE_BACKGROUND_VERT_uxy1kk.png"; 
 
@@ -36,10 +35,13 @@ function App() {
     try {
       const { error: dbError } = await supabase
         .from("leads")
-        .insert([{ name: name.trim(), phone: phone.trim() }]);
+        .insert([{ 
+          name: name.trim(), 
+          phone: phone.trim(),
+          lucky_code: luckyCode.trim().toUpperCase() // Sending code to Supabase
+        }]);
 
       if (dbError) {
-        // Handle Duplicate Phone Numbers (Error code 23505)
         if (dbError.code === "23505") {
           setError("This number is already registered!");
         } else {
@@ -56,6 +58,7 @@ function App() {
   const handleReset = () => {
     setName("");
     setPhone("");
+    setLuckyCode("");
     setSubmitted(false);
     setError("");
   };
@@ -98,17 +101,36 @@ function App() {
               title="Please enter a 10-digit UAE number starting with 05"
               inputMode="numeric"
             />
-            <button type="submit" style={styles.button}>🎁 Claim Now</button>
+            <input
+              type="text"
+              placeholder="Enter Lucky Code"
+              value={luckyCode}
+              onChange={(e) => setLuckyCode(e.target.value)}
+              style={styles.input}
+              required
+            />
+            <button type="submit" style={styles.button}>🎁 Submit</button>
           </form>
 
           {error && <div style={styles.errorBox}>{error}</div>}
         </div>
       ) : (
         <div style={styles.successCard}>
-          <h1 style={styles.title}>🎉 Done!</h1>
-          <p>Thank you, <b>{name}</b>! 🎁</p>
-          <p>The winner will be announced on our <b>1-year anniversary!</b></p>
-          <p>Stay tuned to our socials 📱</p>
+          <h1 style={styles.title}>🎉Done!</h1>
+          <p style={{fontSize: "18px"}}>Thank you, <b style={{fontFamily:"cursive"}}>{name}</b>!</p>
+          
+          {luckyCode && (
+            <div style={styles.codeDisplayBox}>
+              <p style={{margin: "5px 0", fontSize: "14px", color: "#666"}}>Your Lucky Code:</p>
+              <h2 style={styles.luckyCodeText}>{luckyCode.toUpperCase()}</h2>
+            </div>
+          )}
+
+          <p style={styles.screenshotAlert}>Please take a <b>screenshot</b> of this screen!</p>
+          
+          <p style={{fontSize: "14px", marginTop: "15px"}}>
+            The winner will be announced on our <b>1-year anniversary!</b>
+          </p>
           <button onClick={handleReset} style={styles.button}>Submit Again</button>
         </div>
       )}
@@ -149,6 +171,28 @@ const styles = {
   button: { marginTop: "15px", padding: "15px", background: "#2e7d32", color: "#fff", border: "none", borderRadius: "12px", fontSize: "17px", fontWeight: "bold", cursor: "pointer" },
   errorBox: { color: "#d32f2f", backgroundColor: "rgba(255, 235, 238, 0.9)", padding: "12px", borderRadius: "10px", fontSize: "13px", marginTop: "20px", fontWeight: "bold", border: "1px solid #ffcdd2" },
   successCard: { background: "rgba(255, 255, 255, 0.9)", width: "100%", maxWidth: "380px", padding: "35px", borderRadius: "20px", textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.3)" },
+  codeDisplayBox: {
+    background: "#f1f8e9",
+    border: "2px dashed #2e7d32",
+    borderRadius: "12px",
+    padding: "15px",
+    margin: "20px 0",
+  },
+  luckyCodeText: {
+    fontSize: "28px",
+    letterSpacing: "3px",
+    color: "#1b5e20",
+    margin: "0",
+  },
+  screenshotAlert: {
+    color: "#d32f2f",
+    fontWeight: "bold",
+    fontSize: "15px",
+    backgroundColor: "#fff3e0",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #ffe0b2"
+  },
 };
 
 export default App;
