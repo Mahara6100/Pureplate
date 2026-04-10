@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { QRCodeSVG } from "qrcode.react";
-import { useZxing } from "react-zxing"; // The more stable scanner
+import { useZxing } from "react-zxing"; 
 
 // 1. Initialize Supabase
 const supabase = createClient(
@@ -16,7 +16,7 @@ const AdminScanner = () => {
   const [status, setStatus] = useState("SCANNING"); 
   const [customerName, setCustomerName] = useState("");
 
-  // Zxing Hook - Connects directly to the video tag
+  // ZXing Hook - Directly uses the <video> tag
   const { ref } = useZxing({
     onResult(result) {
       const qrText = result.getText();
@@ -27,28 +27,51 @@ const AdminScanner = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === "2026") setIsAuthorized(true);
-    else { alert("Wrong PIN"); setPassword(""); }
+    if (password === "2026") {
+      setIsAuthorized(true);
+    } else {
+      alert("Wrong PIN");
+      setPassword("");
+    }
   };
 
   const handleScanLogic = async (qrText) => {
-    // Extract ID (Works for both UUIDs and simple numbers)
-    const uuid = qrText.replace("PP-OFFER-", "");
+    const uuid = qrText.replace("PP-OFFER-", "").trim();
+    
     try {
       const { data: lead, error } = await supabase
-        .from("leads").select("is_redeemed, name").eq("id", uuid).single();
+        .from("leads")
+        .select("is_redeemed, name")
+        .eq("id", uuid)
+        .single();
 
-      if (error || !lead) { setStatus("ERROR"); return; }
-
-      if (lead.is_redeemed) {
-        setCustomerName(lead.name);
-        setStatus("USED");
-      } else {
-        await supabase.from("leads").update({ is_redeemed: true }).eq("id", uuid);
-        setCustomerName(lead.name);
-        setStatus("VALID");
+      if (error || !lead) {
+        setStatus("ERROR");
+        return;
       }
-    } catch (err) { setStatus("ERROR"); }
+
+      // Check if it's already used (handles both TRUE and NOT NULL)
+      if (lead.is_redeemed === true) {
+        setCustomerName(lead.name);
+        setStatus("USED"); // Should turn RED
+      } else {
+        // MARK AS USED NOW
+        const { error: updateError } = await supabase
+          .from("leads")
+          .update({ is_redeemed: true })
+          .eq("id", uuid);
+        
+        if (updateError) {
+          alert("Update Failed: " + updateError.message);
+          setStatus("ERROR");
+        } else {
+          setCustomerName(lead.name);
+          setStatus("VALID"); // Should turn GREEN
+        }
+      }
+    } catch (err) {
+      setStatus("ERROR");
+    }
   };
 
   if (!isAuthorized) {
@@ -58,7 +81,9 @@ const AdminScanner = () => {
           <h2 style={{color: '#1b5e20'}}>Staff Login</h2>
           <form onSubmit={handleLogin}>
             <input 
-              type="password" placeholder="PIN" value={password}
+              type="password" 
+              placeholder="PIN" 
+              value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={{...styles.input, textAlign: 'center', fontSize: '24px', letterSpacing: '5px'}}
             />
@@ -75,20 +100,18 @@ const AdminScanner = () => {
       
       {status === "SCANNING" ? (
         <div style={{ position: 'relative', width: '100%', maxWidth: '400px', borderRadius: '20px', overflow: 'hidden', background: '#000', border: '4px solid #fff' }}>
-          {/* THE ACTUAL VIDEO FEED */}
-          <video ref={ref} style={{ width: '100%', height: '100%', minHeight: '350px', objectFit: 'cover' }} />
-          
-          {/* SCANNING ANIMATION LINE */}
+          <video 
+            ref={ref} 
+            style={{ width: '100%', height: '100%', minHeight: '350px', objectFit: 'cover' }} 
+          />
           <div className="scan-line" />
-          
           <style>{`
             .scan-line {
               position: absolute; top: 20%; left: 10%; width: 80%; height: 2px;
-              background: red; boxShadow: 0 0 10px red; animation: scan 2s infinite;
+              background: red; box-shadow: 0 0 10px red; animation: scan 2s infinite;
             }
             @keyframes scan { 0% { top: 20%; } 50% { top: 80%; } 100% { top: 20%; } }
           `}</style>
-          
           <p style={{ position: 'absolute', bottom: '10px', width: '100%', textAlign: 'center', color: '#fff', fontSize: '12px', background: 'rgba(0,0,0,0.5)', margin: 0, padding: '5px 0' }}>
             Point camera at customer QR
           </p>
@@ -133,10 +156,22 @@ function App() {
     setError("");
     try {
       const { data, error: dbError } = await supabase
-        .from("leads").insert([{ name: name.trim(), phone: phone.trim() }]).select();
-      if (dbError) { setError(dbError.code === "23505" ? "Already registered!" : "Error"); return; }
-      if (data && data.length > 0) { setUniqueId(data[0].id); setSubmitted(true); }
-    } catch (err) { setError("Network error."); }
+        .from("leads")
+        .insert([{ name: name.trim(), phone: phone.trim() }])
+        .select();
+
+      if (dbError) {
+        setError(dbError.code === "23505" ? "Already registered!" : "Error submitting.");
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setUniqueId(data[0].id);
+        setSubmitted(true);
+      }
+    } catch (err) {
+      setError("Network error.");
+    }
   };
 
   return (
@@ -181,7 +216,6 @@ const styles = {
   screenshotAlert: { color: "#d32f2f", fontWeight: "bold", backgroundColor: "#fff3e0", padding: "10px", borderRadius: "8px", border: "1px solid #ffe0b2" },
   errorBox: { color: "#d32f2f", marginTop: "15px", fontWeight: "bold" },
   idText: { fontSize: "10px", color: "#999", marginTop: "8px", fontFamily: "monospace" },
-  // Admin Styles
   adminContainer: { minHeight: "100vh", background: "#1a1a1a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: 'center', padding: "20px", textAlign: "center" },
   resultBox: { width: "100%", maxWidth: "400px", padding: "40px", borderRadius: "20px", color: "#fff" },
   adminBtn: { marginTop: "20px", padding: "15px 30px", background: "#fff", color: "#000", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: 'pointer' }
