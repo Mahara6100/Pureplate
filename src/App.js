@@ -152,7 +152,7 @@ function App() {
             {/* NEW REFERRAL INPUT */}
             <input 
               type="text" 
-              placeholder="Referral ID (Optional)" 
+              placeholder="Referral ID (Required)" 
               value={referral} 
               onChange={(e) => setReferral(e.target.value)} 
               style={{...styles.input, border: '1px dashed #2e7d32'}} 
