@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { QRCodeSVG } from "qrcode.react";
-import { QrReader } from "react-qr-reader"; // Make sure to install this!
+import { useZxing } from "react-zxing"; // The more stable scanner
 
 // 1. Initialize Supabase
 const supabase = createClient(
@@ -11,63 +11,96 @@ const supabase = createClient(
 
 // --- STAFF ADMIN COMPONENT ---
 const AdminScanner = () => {
-  const [status, setStatus] = useState("SCANNING"); // SCANNING, VALID, USED, ERROR
+  const [password, setPassword] = useState("");
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [status, setStatus] = useState("SCANNING"); 
   const [customerName, setCustomerName] = useState("");
 
-  const handleScan = async (data) => {
-    if (data && data?.text) {
-      const qrText = data.text;
-      const uuid = qrText.replace("PP-OFFER-", "");
+  // Zxing Hook - Connects directly to the video tag
+  const { ref } = useZxing({
+    onResult(result) {
+      const qrText = result.getText();
+      handleScanLogic(qrText);
+    },
+    paused: !isAuthorized || status !== "SCANNING",
+  });
 
-      try {
-        const { data: lead, error } = await supabase
-          .from("leads")
-          .select("is_redeemed, name")
-          .eq("id", uuid)
-          .single();
-
-        if (error || !lead) {
-          setStatus("ERROR");
-          return;
-        }
-
-        if (lead.is_redeemed) {
-          setCustomerName(lead.name);
-          setStatus("USED");
-        } else {
-          await supabase
-            .from("leads")
-            .update({ is_redeemed: true })
-            .eq("id", uuid);
-          
-          setCustomerName(lead.name);
-          setStatus("VALID");
-        }
-      } catch (err) {
-        setStatus("ERROR");
-      }
-    }
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === "2026") setIsAuthorized(true);
+    else { alert("Wrong PIN"); setPassword(""); }
   };
+
+  const handleScanLogic = async (qrText) => {
+    // Extract ID (Works for both UUIDs and simple numbers)
+    const uuid = qrText.replace("PP-OFFER-", "");
+    try {
+      const { data: lead, error } = await supabase
+        .from("leads").select("is_redeemed, name").eq("id", uuid).single();
+
+      if (error || !lead) { setStatus("ERROR"); return; }
+
+      if (lead.is_redeemed) {
+        setCustomerName(lead.name);
+        setStatus("USED");
+      } else {
+        await supabase.from("leads").update({ is_redeemed: true }).eq("id", uuid);
+        setCustomerName(lead.name);
+        setStatus("VALID");
+      }
+    } catch (err) { setStatus("ERROR"); }
+  };
+
+  if (!isAuthorized) {
+    return (
+      <div style={styles.adminContainer}>
+        <div style={styles.card}>
+          <h2 style={{color: '#1b5e20'}}>Staff Login</h2>
+          <form onSubmit={handleLogin}>
+            <input 
+              type="password" placeholder="PIN" value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{...styles.input, textAlign: 'center', fontSize: '24px', letterSpacing: '5px'}}
+            />
+            <button type="submit" style={styles.button}>Login</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.adminContainer}>
-      <h2 style={{color: '#fff'}}>Pure Plate Staff Scanner</h2>
+      <h2 style={{color: '#fff', marginBottom: '15px'}}>Staff Scanner</h2>
+      
       {status === "SCANNING" ? (
-        <div style={styles.cameraBox}>
-          <QrReader
-            onResult={handleScan}
-            constraints={{ facingMode: "environment" }}
-            style={{ width: "100%" }}
-          />
-          <p style={{padding: '10px'}}>Point camera at customer's QR</p>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '400px', borderRadius: '20px', overflow: 'hidden', background: '#000', border: '4px solid #fff' }}>
+          {/* THE ACTUAL VIDEO FEED */}
+          <video ref={ref} style={{ width: '100%', height: '100%', minHeight: '350px', objectFit: 'cover' }} />
+          
+          {/* SCANNING ANIMATION LINE */}
+          <div className="scan-line" />
+          
+          <style>{`
+            .scan-line {
+              position: absolute; top: 20%; left: 10%; width: 80%; height: 2px;
+              background: red; boxShadow: 0 0 10px red; animation: scan 2s infinite;
+            }
+            @keyframes scan { 0% { top: 20%; } 50% { top: 80%; } 100% { top: 20%; } }
+          `}</style>
+          
+          <p style={{ position: 'absolute', bottom: '10px', width: '100%', textAlign: 'center', color: '#fff', fontSize: '12px', background: 'rgba(0,0,0,0.5)', margin: 0, padding: '5px 0' }}>
+            Point camera at customer QR
+          </p>
         </div>
       ) : (
         <div style={{...styles.resultBox, backgroundColor: status === "VALID" ? "#2e7d32" : "#d32f2f"}}>
-          <h1>{status === "VALID" ? "✅ VALID" : status === "USED" ? "❌ USED" : "⚠️ ERROR"}</h1>
-          <p style={{fontSize: '22px'}}>Customer: <b>{customerName}</b></p>
+          <h1 style={{fontSize: '40px'}}>{status === "VALID" ? "✅ VALID" : status === "USED" ? "❌ USED" : "⚠️ ERROR"}</h1>
+          <p style={{fontSize: '20px'}}>Customer: <b>{customerName}</b></p>
           <button onClick={() => setStatus("SCANNING")} style={styles.adminBtn}>Scan Next</button>
         </div>
       )}
+      <button onClick={() => setIsAuthorized(false)} style={{marginTop: '30px', color: '#888', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer'}}>Logout</button>
     </div>
   );
 };
@@ -81,7 +114,6 @@ function App() {
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  // Check if we are on the admin page
   const isAdmin = window.location.pathname === "/admin";
 
   useEffect(() => {
@@ -101,22 +133,10 @@ function App() {
     setError("");
     try {
       const { data, error: dbError } = await supabase
-        .from("leads")
-        .insert([{ name: name.trim(), phone: phone.trim() }])
-        .select();
-
-      if (dbError) {
-        setError(dbError.code === "23505" ? "Already registered!" : "Database error.");
-        return;
-      }
-
-      if (data && data.length > 0) {
-        setUniqueId(data[0].id);
-        setSubmitted(true);
-      }
-    } catch (err) {
-      setError("Network error.");
-    }
+        .from("leads").insert([{ name: name.trim(), phone: phone.trim() }]).select();
+      if (dbError) { setError(dbError.code === "23505" ? "Already registered!" : "Error"); return; }
+      if (data && data.length > 0) { setUniqueId(data[0].id); setSubmitted(true); }
+    } catch (err) { setError("Network error."); }
   };
 
   return (
@@ -124,7 +144,7 @@ function App() {
       {!submitted ? (
         <div style={styles.card}>
           <h1 style={styles.title}>🎉 Pure Plate</h1>
-          <p style={styles.subtitle}>Get your <b>35% OFF Voucher</b></p>
+          <p>Get your <b>35% OFF Voucher</b></p>
           <form onSubmit={submitForm} style={styles.form}>
             <input type="text" placeholder="Your Name" value={name} onChange={(e) => setName(e.target.value)} style={styles.input} required />
             <input type="tel" placeholder="05X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))} style={styles.input} required pattern="[0][5][0-9]{8}" maxLength="10" />
@@ -150,22 +170,21 @@ function App() {
 
 const styles = {
   container: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundSize: "cover", backgroundPosition: "center", padding: "15px", fontFamily: "'Montserrat', sans-serif" },
-  card: { background: "rgba(255, 255, 255, 0.9)", width: "100%", maxWidth: "380px", padding: "30px", borderRadius: "25px", textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.2)", backdropFilter: "blur(8px)" },
+  card: { background: "rgba(255, 255, 255, 0.9)", width: "100%", maxWidth: "380px", padding: "30px", borderRadius: "25px", textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.2)" },
   successCard: { background: "#fff", width: "100%", maxWidth: "380px", padding: "30px", borderRadius: "25px", textAlign: "center", border: "4px solid #2e7d32" },
   title: { fontSize: "26px", color: "#1b5e20", fontWeight: "bold" },
   form: { display: "flex", flexDirection: "column" },
-  input: { padding: "15px", margin: "8px 0", borderRadius: "12px", border: "1px solid #ccc", fontSize: "16px" },
-  button: { marginTop: "15px", padding: "16px", background: "#2e7d32", color: "#fff", border: "none", borderRadius: "12px", fontSize: "18px", fontWeight: "bold" },
+  input: { padding: "15px", margin: "8px 0", borderRadius: "12px", border: "1px solid #ccc", fontSize: "16px", width: '100%', boxSizing: 'border-box' },
+  button: { marginTop: "15px", padding: "16px", background: "#2e7d32", color: "#fff", border: "none", borderRadius: "12px", fontSize: "18px", fontWeight: "bold", width: '100%', cursor: 'pointer' },
   qrContainer: { background: "#f0f0f0", padding: "20px", borderRadius: "20px", margin: "15px 0", display: "inline-block" },
   discountBadge: { background: "#d32f2f", color: "white", fontSize: "24px", fontWeight: "bold", padding: "10px 20px", borderRadius: "50px", margin: "10px 0", display: "inline-block" },
   screenshotAlert: { color: "#d32f2f", fontWeight: "bold", backgroundColor: "#fff3e0", padding: "10px", borderRadius: "8px", border: "1px solid #ffe0b2" },
   errorBox: { color: "#d32f2f", marginTop: "15px", fontWeight: "bold" },
   idText: { fontSize: "10px", color: "#999", marginTop: "8px", fontFamily: "monospace" },
   // Admin Styles
-  adminContainer: { minHeight: "100vh", background: "#1a1a1a", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px", textAlign: "center" },
-  cameraBox: { width: "100%", maxWidth: "400px", background: "#fff", borderRadius: "20px", overflow: "hidden" },
+  adminContainer: { minHeight: "100vh", background: "#1a1a1a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: 'center', padding: "20px", textAlign: "center" },
   resultBox: { width: "100%", maxWidth: "400px", padding: "40px", borderRadius: "20px", color: "#fff" },
-  adminBtn: { marginTop: "20px", padding: "15px 30px", background: "#fff", color: "#000", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: "pointer" }
+  adminBtn: { marginTop: "20px", padding: "15px 30px", background: "#fff", color: "#000", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: 'pointer' }
 };
 
 export default App;
