@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { QRCodeSVG } from "qrcode.react";
 import { useZxing } from "react-zxing"; 
 
-// 1. Initialize Supabase
+// Initialize Supabase
 const supabase = createClient(
   "https://fueahltjaebeberasvye.supabase.co",
   "sb_publishable_dLJU-Q5qjwjQQhX7bFUQvA_Byv4T6zC"
@@ -94,7 +94,7 @@ const AdminScanner = () => {
 function App() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [referral, setReferral] = useState(""); // NEW REFERRAL STATE
+  const [referral, setReferral] = useState(""); 
   const [submitted, setSubmitted] = useState(false);
   const [uniqueId, setUniqueId] = useState(""); 
   const [error, setError] = useState("");
@@ -117,13 +117,20 @@ function App() {
   const submitForm = async (e) => {
     e.preventDefault();
     setError("");
+    
+    // Final check before sending to Supabase
+    if (!referral.trim()) {
+      setError("Please enter a referral code.");
+      return;
+    }
+
     try {
       const { data, error: dbError } = await supabase
         .from("leads")
         .insert([{ 
             name: name.trim(), 
             phone: phone.trim(),
-            lucky_code: referral.trim() // Saving referral ID to lucky_code
+            lucky_code: referral.trim()
         }])
         .select();
 
@@ -149,13 +156,14 @@ function App() {
             <input type="text" placeholder="Your Name" value={name} onChange={(e) => setName(e.target.value)} style={styles.input} required />
             <input type="tel" placeholder="05X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))} style={styles.input} required pattern="[0][5][0-9]{8}" maxLength="10" />
             
-            {/* NEW REFERRAL INPUT */}
+            {/* MANDATORY REFERRAL INPUT */}
             <input 
               type="text" 
-              placeholder="Referral ID (Required)" 
+              placeholder="Referral Code (Mandatory)" 
               value={referral} 
               onChange={(e) => setReferral(e.target.value)} 
-              style={{...styles.input, border: '1px dashed #2e7d32'}} 
+              style={{...styles.input, border: '2px dashed #d32f2f'}} 
+              required // Browser will block submission if empty
             />
             
             <button type="submit" style={styles.button}>🎁 Get My Voucher</button>
