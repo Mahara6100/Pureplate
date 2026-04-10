@@ -192,23 +192,31 @@ function App() {
           <h2 style={styles.title}>🎉 SUCCESS!</h2>
           <p>Thank you, <b>{name}</b>!</p>
           
-          <div style={styles.qrContainer}>
-            {/* IMPROVED QR CODE FOR BETTER SCANNING */}
+          {/* CONTRAST SHIELD: Forces pure white background for Samsung/Dark Mode compatibility */}
+          <div style={{
+            background: "#FFFFFF", 
+            padding: "15px", 
+            borderRadius: "15px", 
+            display: "inline-block", 
+            margin: "15px 0",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
+          }}>
             <QRCodeSVG 
               value={`PP-OFFER-${uniqueId}`} 
-              size={220}               // Bigger size
+              size={240}               // Increased size even more for Samsung focus
               level={"H"}              // High error correction
-              includeMargin={true} 
-              bgColor={"#FFFFFF"}      // Force pure white
-              fgColor={"#000000"}      // Force pure black
+              includeMargin={false} 
+              bgColor={"#FFFFFF"}      
+              fgColor={"#000000"}      
             />
-            <p style={styles.idText}>REF: {uniqueId ? String(uniqueId).substring(0, 8).toUpperCase() : "..."}</p>
+            <p style={{ ...styles.idText, color: "#000", marginTop: "10px", fontWeight: "bold" }}>
+              REF: {uniqueId ? String(uniqueId).substring(0, 8).toUpperCase() : "..."}
+            </p>
           </div>
 
           <div style={styles.discountBadge}>35% OFF</div>
           <p style={styles.screenshotAlert}>📸 TAKE A <b>SCREENSHOT</b> NOW!</p>
           
-          {/* HELPFUL TIP FOR STAFF */}
           <p style={{ fontSize: '11px', color: '#888', marginTop: '10px' }}>
             💡 Tip: Increase phone brightness for faster scanning
           </p>
