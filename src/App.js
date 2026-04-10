@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { QRCodeSVG } from "qrcode.react";
+import { QrReader } from "react-qr-reader"; // Make sure to install this!
 
 // 1. Initialize Supabase
 const supabase = createClient(
@@ -7,131 +9,139 @@ const supabase = createClient(
   "sb_publishable_dLJU-Q5qjwjQQhX7bFUQvA_Byv4T6zC"
 );
 
+// --- STAFF ADMIN COMPONENT ---
+const AdminScanner = () => {
+  const [status, setStatus] = useState("SCANNING"); // SCANNING, VALID, USED, ERROR
+  const [customerName, setCustomerName] = useState("");
+
+  const handleScan = async (data) => {
+    if (data && data?.text) {
+      const qrText = data.text;
+      const uuid = qrText.replace("PP-OFFER-", "");
+
+      try {
+        const { data: lead, error } = await supabase
+          .from("leads")
+          .select("is_redeemed, name")
+          .eq("id", uuid)
+          .single();
+
+        if (error || !lead) {
+          setStatus("ERROR");
+          return;
+        }
+
+        if (lead.is_redeemed) {
+          setCustomerName(lead.name);
+          setStatus("USED");
+        } else {
+          await supabase
+            .from("leads")
+            .update({ is_redeemed: true })
+            .eq("id", uuid);
+          
+          setCustomerName(lead.name);
+          setStatus("VALID");
+        }
+      } catch (err) {
+        setStatus("ERROR");
+      }
+    }
+  };
+
+  return (
+    <div style={styles.adminContainer}>
+      <h2 style={{color: '#fff'}}>Pure Plate Staff Scanner</h2>
+      {status === "SCANNING" ? (
+        <div style={styles.cameraBox}>
+          <QrReader
+            onResult={handleScan}
+            constraints={{ facingMode: "environment" }}
+            style={{ width: "100%" }}
+          />
+          <p style={{padding: '10px'}}>Point camera at customer's QR</p>
+        </div>
+      ) : (
+        <div style={{...styles.resultBox, backgroundColor: status === "VALID" ? "#2e7d32" : "#d32f2f"}}>
+          <h1>{status === "VALID" ? "✅ VALID" : status === "USED" ? "❌ USED" : "⚠️ ERROR"}</h1>
+          <p style={{fontSize: '22px'}}>Customer: <b>{customerName}</b></p>
+          <button onClick={() => setStatus("SCANNING")} style={styles.adminBtn}>Scan Next</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- MAIN APP COMPONENT ---
 function App() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [luckyCode, setLuckyCode] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [uniqueId, setUniqueId] = useState(""); 
   const [error, setError] = useState("");
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  // 2. Background Switcher Logic
+  // Check if we are on the admin page
+  const isAdmin = window.location.pathname === "/admin";
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const webBG = "https://res.cloudinary.com/dpvmewh9g/image/upload/v1775560048/WEDSITE_BACKGROUND_HORI_f1uqmi.png";
-  const mobileBG = "https://res.cloudinary.com/dpvmewh9g/image/upload/v1775565539/WEDSITE_BACKGROUND_VERT_uxy1kk.png"; 
+  if (isAdmin) return <AdminScanner />;
 
-  const currentBG = isMobile ? mobileBG : webBG;
+  const currentBG = isMobile 
+    ? "https://res.cloudinary.com/dpvmewh9g/image/upload/v1775565539/WEDSITE_BACKGROUND_VERT_uxy1kk.png" 
+    : "https://res.cloudinary.com/dpvmewh9g/image/upload/v1775560048/WEDSITE_BACKGROUND_HORI_f1uqmi.png";
 
-  // 3. Form Submission to Supabase
   const submitForm = async (e) => {
     e.preventDefault();
     setError("");
-
     try {
-      const { error: dbError } = await supabase
+      const { data, error: dbError } = await supabase
         .from("leads")
-        .insert([{ 
-          name: name.trim(), 
-          phone: phone.trim(),
-          lucky_code: luckyCode.trim().toUpperCase() // Sending code to Supabase
-        }]);
+        .insert([{ name: name.trim(), phone: phone.trim() }])
+        .select();
 
       if (dbError) {
-        if (dbError.code === "23505") {
-          setError("This number is already registered!");
-        } else {
-          setError("Database connection error. Check your RLS policies.");
-        }
+        setError(dbError.code === "23505" ? "Already registered!" : "Database error.");
         return;
       }
-      setSubmitted(true);
+
+      if (data && data.length > 0) {
+        setUniqueId(data[0].id);
+        setSubmitted(true);
+      }
     } catch (err) {
-      setError("Network error. Please try again later.");
+      setError("Network error.");
     }
   };
 
-  const handleReset = () => {
-    setName("");
-    setPhone("");
-    setLuckyCode("");
-    setSubmitted(false);
-    setError("");
-  };
-
   return (
-    <div 
-      style={{ 
-        ...styles.container, 
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('${currentBG}')` 
-      }}
-    >
+    <div style={{ ...styles.container, backgroundImage: `linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.1)), url('${currentBG}')` }}>
       {!submitted ? (
         <div style={styles.card}>
-          <h1 style={styles.title}>🎉 Pure Plate Turns 1!</h1>
-          <p style={styles.subtitle}>🎁 Win a <b>Lucky Voucher</b></p>
-          <p style={styles.desc}>🥗 Fresh • Healthy • Daily Meal Plans</p>
-          <p style={styles.urgency}>⏳ Limited Time Offer</p>
-
+          <h1 style={styles.title}>🎉 Pure Plate</h1>
+          <p style={styles.subtitle}>Get your <b>35% OFF Voucher</b></p>
           <form onSubmit={submitForm} style={styles.form}>
-            <input
-              type="text"
-              placeholder="Your Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={styles.input}
-              required
-            />
-            <input
-              type="tel"
-              placeholder="05X XXX XXXX"
-              value={phone}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9]/g, "");
-                if (value.length <= 10) setPhone(value);
-              }}
-              style={styles.input}
-              required
-              pattern="[0][5][0-9]{8}"
-              maxLength="10"
-              title="Please enter a 10-digit UAE number starting with 05"
-              inputMode="numeric"
-            />
-            <input
-              type="text"
-              placeholder="Enter Lucky Code"
-              value={luckyCode}
-              onChange={(e) => setLuckyCode(e.target.value)}
-              style={styles.input}
-              required
-            />
-            <button type="submit" style={styles.button}>🎁 Submit</button>
+            <input type="text" placeholder="Your Name" value={name} onChange={(e) => setName(e.target.value)} style={styles.input} required />
+            <input type="tel" placeholder="05X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))} style={styles.input} required pattern="[0][5][0-9]{8}" maxLength="10" />
+            <button type="submit" style={styles.button}>🎁 Get My Voucher</button>
           </form>
-
           {error && <div style={styles.errorBox}>{error}</div>}
         </div>
       ) : (
         <div style={styles.successCard}>
-          <h1 style={styles.title}>🎉Done!</h1>
-          <p style={{fontSize: "18px"}}>Thank you, <b style={{fontFamily:"monospace"}}>{name}</b>!</p>
-          
-          {luckyCode && (
-            <div style={styles.codeDisplayBox}>
-              <p style={{margin: "5px 0", fontSize: "14px", color: "#666"}}>Your Lucky Code:</p>
-              <h2 style={styles.luckyCodeText}>{luckyCode.toUpperCase()}</h2>
-            </div>
-          )}
-
-          <p style={styles.screenshotAlert}>Please take a <b>screenshot</b> of this screen!</p>
-          
-          <p style={{fontSize: "14px", marginTop: "15px"}}>
-            The winner will be announced on our <b>1-year anniversary!</b>
-          </p>
-          <button onClick={handleReset} style={styles.button}>Submit Again</button>
+          <h2 style={styles.title}>🎉 SUCCESS!</h2>
+          <p>Thank you, <b>{name}</b>!</p>
+          <div style={styles.qrContainer}>
+            <QRCodeSVG value={`PP-OFFER-${uniqueId}`} size={180} level={"H"} includeMargin={true} />
+            <p style={styles.idText}>REF: {uniqueId ? String(uniqueId).substring(0, 8).toUpperCase() : "..."}</p>
+          </div>
+          <div style={styles.discountBadge}>35% OFF</div>
+          <p style={styles.screenshotAlert}>📸 TAKE A <b>SCREENSHOT</b> NOW!</p>
         </div>
       )}
     </div>
@@ -139,60 +149,23 @@ function App() {
 }
 
 const styles = {
-  container: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    padding: "15px",
-    transition: "background-image 0.5s ease-in-out",
-    fontFamily: "Arial, sans-serif",
-  },
-  card: {
-    background: "rgba(255, 255, 255, 0.8)",
-    width: "100%",
-    maxWidth: "380px",
-    padding: "30px",
-    borderRadius: "20px",
-    textAlign: "center",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
-    backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)",
-  },
-  title: { fontSize: "24px", marginBottom: "10px", color: "#1b5e20", fontWeight: "700" },
-  subtitle: { fontSize: "16px", marginBottom: "8px" },
-  desc: { fontSize: "14px", color: "#444", marginBottom: "10px", fontFamily: "serif" },
-  urgency: { color: "#d32f2f", fontSize: "13px", marginBottom: "20px", fontWeight: "bold" },
+  container: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundSize: "cover", backgroundPosition: "center", padding: "15px", fontFamily: "'Montserrat', sans-serif" },
+  card: { background: "rgba(255, 255, 255, 0.9)", width: "100%", maxWidth: "380px", padding: "30px", borderRadius: "25px", textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.2)", backdropFilter: "blur(8px)" },
+  successCard: { background: "#fff", width: "100%", maxWidth: "380px", padding: "30px", borderRadius: "25px", textAlign: "center", border: "4px solid #2e7d32" },
+  title: { fontSize: "26px", color: "#1b5e20", fontWeight: "bold" },
   form: { display: "flex", flexDirection: "column" },
-  input: { padding: "15px", margin: "10px 0", borderRadius: "12px", border: "1px solid #bbb", fontSize: "16px", outline: "none" },
-  button: { marginTop: "15px", padding: "15px", background: "#2e7d32", color: "#fff", border: "none", borderRadius: "12px", fontSize: "17px", fontWeight: "bold", cursor: "pointer" },
-  errorBox: { color: "#d32f2f", backgroundColor: "rgba(255, 235, 238, 0.9)", padding: "12px", borderRadius: "10px", fontSize: "13px", marginTop: "20px", fontWeight: "bold", border: "1px solid #ffcdd2" },
-  successCard: { background: "rgba(255, 255, 255, 0.9)", width: "100%", maxWidth: "380px", padding: "35px", borderRadius: "20px", textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.3)" },
-  codeDisplayBox: {
-    background: "#f1f8e9",
-    border: "2px dashed #2e7d32",
-    borderRadius: "12px",
-    padding: "15px",
-    margin: "20px 0",
-  },
-  luckyCodeText: {
-    fontSize: "28px",
-    letterSpacing: "3px",
-    color: "#1b5e20",
-    margin: "0",
-  },
-  screenshotAlert: {
-    color: "#d32f2f",
-    fontWeight: "bold",
-    fontSize: "15px",
-    backgroundColor: "#fff3e0",
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid #ffe0b2"
-  },
+  input: { padding: "15px", margin: "8px 0", borderRadius: "12px", border: "1px solid #ccc", fontSize: "16px" },
+  button: { marginTop: "15px", padding: "16px", background: "#2e7d32", color: "#fff", border: "none", borderRadius: "12px", fontSize: "18px", fontWeight: "bold" },
+  qrContainer: { background: "#f0f0f0", padding: "20px", borderRadius: "20px", margin: "15px 0", display: "inline-block" },
+  discountBadge: { background: "#d32f2f", color: "white", fontSize: "24px", fontWeight: "bold", padding: "10px 20px", borderRadius: "50px", margin: "10px 0", display: "inline-block" },
+  screenshotAlert: { color: "#d32f2f", fontWeight: "bold", backgroundColor: "#fff3e0", padding: "10px", borderRadius: "8px", border: "1px solid #ffe0b2" },
+  errorBox: { color: "#d32f2f", marginTop: "15px", fontWeight: "bold" },
+  idText: { fontSize: "10px", color: "#999", marginTop: "8px", fontFamily: "monospace" },
+  // Admin Styles
+  adminContainer: { minHeight: "100vh", background: "#1a1a1a", display: "flex", flexDirection: "column", alignItems: "center", padding: "20px", textAlign: "center" },
+  cameraBox: { width: "100%", maxWidth: "400px", background: "#fff", borderRadius: "20px", overflow: "hidden" },
+  resultBox: { width: "100%", maxWidth: "400px", padding: "40px", borderRadius: "20px", color: "#fff" },
+  adminBtn: { marginTop: "20px", padding: "15px 30px", background: "#fff", color: "#000", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: "pointer" }
 };
 
 export default App;
