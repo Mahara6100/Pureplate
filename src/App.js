@@ -10,17 +10,23 @@ const supabase = createClient(
 );
 
 // --- STAFF ADMIN COMPONENT ---
+// --- UPDATED STAFF ADMIN COMPONENT ---
 const AdminScanner = () => {
   const [password, setPassword] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [status, setStatus] = useState("SCANNING"); 
   const [customerName, setCustomerName] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false); // NEW: Lock to prevent double scans
 
   const { ref } = useZxing({
     onResult(result) {
-      handleScanLogic(result.getText());
+      // If we are already checking a code, ignore any new camera hits
+      if (isProcessing || status !== "SCANNING") return;
+      
+      const qrText = result.getText();
+      handleScanLogic(qrText);
     },
-    paused: !isAuthorized || status !== "SCANNING",
+    paused: !isAuthorized || status !== "SCANNING" || isProcessing,
   });
 
   const handleLogin = (e) => {
@@ -30,22 +36,39 @@ const AdminScanner = () => {
   };
 
   const handleScanLogic = async (qrText) => {
+    setIsProcessing(true); // LOCK THE SCANNER IMMEDIATELY
     const uuid = qrText.replace("PP-OFFER-", "").trim();
+    
     try {
       const { data: lead, error } = await supabase
         .from("leads").select("is_redeemed, name").eq("id", uuid).single();
 
-      if (error || !lead) { setStatus("ERROR"); return; }
+      if (error || !lead) { 
+        setStatus("ERROR"); 
+        setIsProcessing(false); 
+        return; 
+      }
 
       if (lead.is_redeemed) {
         setCustomerName(lead.name);
         setStatus("USED");
       } else {
+        // Update DB
         await supabase.from("leads").update({ is_redeemed: true }).eq("id", uuid);
         setCustomerName(lead.name);
         setStatus("VALID");
       }
-    } catch (err) { setStatus("ERROR"); }
+    } catch (err) { 
+      setStatus("ERROR"); 
+    } finally {
+      // We don't set isProcessing to false here because we want the 
+      // user to click "Scan Next" before the camera starts again
+    }
+  };
+
+  const startNextScan = () => {
+    setIsProcessing(false); // UNLOCK
+    setStatus("SCANNING");
   };
 
   if (!isAuthorized) {
@@ -72,6 +95,7 @@ const AdminScanner = () => {
       {status === "SCANNING" ? (
         <div style={{ position: 'relative', width: '100%', maxWidth: '400px', borderRadius: '20px', overflow: 'hidden', background: '#000', border: '4px solid #fff' }}>
           <video ref={ref} style={{ width: '100%', height: '100%', minHeight: '350px', objectFit: 'cover' }} />
+          {isProcessing && <div style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'}}>Checking...</div>}
           <div className="scan-line" />
           <style>{`
             .scan-line { position: absolute; top: 20%; left: 10%; width: 80%; height: 2px; background: red; box-shadow: 0 0 10px red; animation: scan 2s infinite; }
@@ -82,7 +106,7 @@ const AdminScanner = () => {
         <div style={{...styles.resultBox, backgroundColor: status === "VALID" ? "#2e7d32" : "#d32f2f"}}>
           <h1 style={{fontSize: '40px'}}>{status === "VALID" ? "✅ VALID" : "❌ USED"}</h1>
           <p>Customer: <b>{customerName}</b></p>
-          <button onClick={() => setStatus("SCANNING")} style={styles.adminBtn}>Scan Next</button>
+          <button onClick={startNextScan} style={styles.adminBtn}>Scan Next</button>
         </div>
       )}
       <button onClick={() => setIsAuthorized(false)} style={{marginTop: '30px', color: '#888', background: 'none', border: 'none', textDecoration: 'underline'}}>Logout</button>
