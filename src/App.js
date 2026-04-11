@@ -160,7 +160,7 @@ function App() {
       ) : (
         <div style={styles.glassCard}>
 
-          <h2 style={{color: '#444', fontSize: '26px', margin: '10px 0'}}>VOUCHER SECURED! 🎉</h2>
+          <h2 style={{color: '#444', fontSize: '26px', margin: '10px 0'}}>VOUCHER SECURED!🎉</h2>
           
           {/* THE DIGITAL PASS UI */}
           <div style={styles.qrPass}>
@@ -177,11 +177,7 @@ function App() {
 
           </div>
 
-          <a href="https://www.talabat.com/uae/pure-plate" target="_blank" rel="noreferrer" style={styles.advancedMenuBtn}>
-            🍽️ BROWSE MENU & PRICES
-          </a>
-
-          <p style={{ fontSize: '11px', color: '#fff', opacity: 0.7, marginTop: '15px' }}>💡 Tip: Turn up brightness for staff to scan</p>
+          <p style={{ fontSize: '11px', color: '#444', opacity: 0.7, marginTop: '15px' }}>💡 Tip: Turn up brightness for staff to scan</p>
 
           <style>{`
             .pulse-dot { height: 8px; width: 8px; background-color: #4caf50; border-radius: 50%; display: inline-block; margin-right: 8px; animation: pulse-green 2s infinite; }
@@ -208,7 +204,6 @@ const styles = {
   actionGrid: { display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '15px' },
   screenshotAlert: { color: "#fff", fontWeight: "bold", background: "rgba(211, 47, 47, 0.8)", padding: "12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.3)", fontSize: '13px' },
   miniMenuLink: { color: '#fff', fontSize: '13px', textDecoration: 'underline', display: 'block', marginBottom: '15px' },
-  advancedMenuBtn: { display: 'block', marginTop: '15px', padding: '15px', background: '#fff', color: '#1b5e20', textDecoration: 'none', borderRadius: '15px', fontWeight: '900', letterSpacing: '1px' },
   errorBox: { color: "#ffcdd2", marginTop: "15px", fontWeight: "bold" },
   adminContainer: { minHeight: "100vh", background: "#0a1f0c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: 'center', padding: "20px" },
   resultBox: { width: "95%", maxWidth: "400px", padding: "40px", borderRadius: "30px", color: "#fff", textAlign: "center" },
