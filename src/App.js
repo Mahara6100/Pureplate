@@ -152,7 +152,7 @@ function App() {
           <form onSubmit={submitForm} style={styles.form}>
             <input type="text" placeholder="Your Name" value={name} onChange={(e) => setName(e.target.value)} style={styles.input} required />
             <input type="tel" placeholder="05X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))} style={styles.input} required pattern="[0][5][0-9]{8}" maxLength="10" />
-            <input type="text" placeholder="Referral Code (Required)" value={referral} onChange={(e) => setReferral(e.target.value)} style={{...styles.input, border: '2px dashed #4caf50'}} required />
+            <input type="text" placeholder="Referral Code" value={referral} onChange={(e) => setReferral(e.target.value)} style={{...styles.input,}} required />
             <button type="submit" style={styles.button}>🎁 Claim My Voucher</button>
           </form>
           {error && <div style={styles.errorBox}>{error}</div>}
