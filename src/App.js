@@ -159,17 +159,13 @@ function App() {
         </div>
       ) : (
         <div style={styles.glassCard}>
-          <div style={styles.liveBadge}>
-            <span className="pulse-dot"></span> 42 people joined in the last hour
-          </div>
 
-          <h2 style={{color: '#fff', fontSize: '26px', margin: '10px 0'}}>VOUCHER SECURED! 🎉</h2>
+          <h2 style={{color: '#444', fontSize: '26px', margin: '10px 0'}}>VOUCHER SECURED! 🎉</h2>
           
           {/* THE DIGITAL PASS UI */}
           <div style={styles.qrPass}>
             <QRCodeSVG value={`PP-OFFER-${uniqueId}`} size={220} level={"H"} bgColor={"#FFFFFF"} fgColor={"#000000"} />
             <div style={{marginTop: '10px'}}>
-              <p style={{ color: "#000", fontWeight: "bold", fontSize: '14px', margin: 0 }}>ANNIVERSARY PASS</p>
               <p style={{ color: "#666", fontSize: '10px', fontFamily: 'monospace' }}>ID: {uniqueId.substring(0,8).toUpperCase()}</p>
             </div>
           </div>
@@ -177,18 +173,8 @@ function App() {
           <div style={styles.discountBadge}>35% OFF</div>
           
           <div style={styles.actionGrid}>
-            <p style={styles.screenshotAlert}>📸 STEP 1: TAKE A SCREENSHOT</p>
+            <p style={styles.screenshotAlert}>📸 TAKE A SCREENSHOT</p>
 
-            <button 
-              onClick={() => {
-                const text = encodeURIComponent(`Hey! I just got 35% OFF at Pure Plate Anniversary event! 🌱 Get yours here: ${window.location.origin}`);
-                window.open(`https://wa.me/?text=${text}`, '_blank');
-              }} 
-              style={styles.whatsappBtn}
-            >
-              <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" width="18" style={{marginRight: '8px'}} alt="wa"/>
-              Share on WhatsApp
-            </button>
           </div>
 
           <a href="https://www.talabat.com/uae/pure-plate" target="_blank" rel="noreferrer" style={styles.advancedMenuBtn}>
@@ -220,11 +206,9 @@ const styles = {
   qrPass: { background: "#FFFFFF", padding: "25px 20px 15px 20px", borderRadius: "25px", display: "inline-block", margin: "15px 0", boxShadow: "0 10px 30px rgba(0,0,0,0.3)", border: "2px solid #4caf50" },
   discountBadge: { background: "#ff9800", color: "white", fontSize: "28px", fontWeight: "bold", padding: "12px 25px", borderRadius: "50px", margin: "15px 0", display: "inline-block" },
   actionGrid: { display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginTop: '15px' },
-  whatsappBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#25D366', color: '#fff', border: 'none', padding: '12px', borderRadius: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' },
   screenshotAlert: { color: "#fff", fontWeight: "bold", background: "rgba(211, 47, 47, 0.8)", padding: "12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.3)", fontSize: '13px' },
   miniMenuLink: { color: '#fff', fontSize: '13px', textDecoration: 'underline', display: 'block', marginBottom: '15px' },
   advancedMenuBtn: { display: 'block', marginTop: '15px', padding: '15px', background: '#fff', color: '#1b5e20', textDecoration: 'none', borderRadius: '15px', fontWeight: '900', letterSpacing: '1px' },
-  liveBadge: { background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: '12px', padding: '6px 15px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center' },
   errorBox: { color: "#ffcdd2", marginTop: "15px", fontWeight: "bold" },
   adminContainer: { minHeight: "100vh", background: "#0a1f0c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: 'center', padding: "20px" },
   resultBox: { width: "95%", maxWidth: "400px", padding: "40px", borderRadius: "30px", color: "#fff", textAlign: "center" },
