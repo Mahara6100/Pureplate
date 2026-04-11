@@ -144,12 +144,10 @@ function App() {
     <div style={{ ...styles.container, backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${currentBG}')` }}>
       {!submitted ? (
         <div style={styles.glassCard}>
-          <h1 style={styles.title}>🌱 Pure Plate</h1>
-          <p style={{color: '#fff', opacity: 0.9, marginBottom: '5px'}}>Anniversary Special</p>
-          
-          <a href="https://www.talabat.com/uae/pure-plate" target="_blank" rel="noreferrer" style={styles.miniMenuLink}>
-            📖 Browse Our Menu
-          </a>
+          <h1 style={styles.title}>🎉 Pure Plate Turns 1!</h1>
+          <p style={styles.subtitle}>🎁 Win a <b>Lucky Voucher</b></p>
+          <p style={styles.desc}>🥗 Fresh • Healthy • Daily Meal Plans</p>
+          <p style={styles.urgency}>⏳ Limited Time Offer</p>
 
           <form onSubmit={submitForm} style={styles.form}>
             <input type="text" placeholder="Your Name" value={name} onChange={(e) => setName(e.target.value)} style={styles.input} required />
@@ -212,7 +210,10 @@ function App() {
 const styles = {
   container: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundSize: "cover", backgroundPosition: "center", padding: "15px", fontFamily: "'Montserrat', sans-serif" },
   glassCard: { background: "rgba(255, 255, 255, 0.15)", backdropFilter: "blur(15px)", WebkitBackdropFilter: "blur(15px)", width: "100%", maxWidth: "380px", padding: "35px", borderRadius: "35px", textAlign: "center", border: "1px solid rgba(255,255,255,0.2)", boxShadow: "0 15px 35px rgba(0,0,0,0.3)" },
-  title: { fontSize: "32px", color: "#fff", fontWeight: "bold", margin: 0 },
+  title: { fontSize: "24px", marginBottom: "10px", color: "#1b5e20", fontWeight: "700" },
+  subtitle: { fontSize: "16px", marginBottom: "8px" },
+  desc: { fontSize: "14px", color: "#444", marginBottom: "10px", fontFamily: "serif" },
+  urgency: { color: "#d32f2f", fontSize: "13px", marginBottom: "20px", fontWeight: "bold" },
   form: { display: "flex", flexDirection: "column", marginTop: '10px' },
   input: { padding: "16px", margin: "8px 0", borderRadius: "15px", border: "none", fontSize: "16px", width: '100%', boxSizing: 'border-box', background: 'white' },
   button: { marginTop: "15px", padding: "18px", background: "#4caf50", color: "#fff", border: "none", borderRadius: "15px", fontSize: "18px", fontWeight: "bold", cursor: 'pointer' },
