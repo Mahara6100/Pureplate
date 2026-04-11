@@ -209,7 +209,7 @@ function App() {
 
 const styles = {
   container: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", backgroundSize: "cover", backgroundPosition: "center", padding: "15px", fontFamily: "'Montserrat', sans-serif" },
-  glassCard: { background: "rgba(255, 255, 255, 0.15)", backdropFilter: "blur(15px)", WebkitBackdropFilter: "blur(15px)", width: "100%", maxWidth: "380px", padding: "35px", borderRadius: "35px", textAlign: "center", border: "1px solid rgba(255,255,255,0.2)", boxShadow: "0 15px 35px rgba(0,0,0,0.3)" },
+  glassCard: { background: "rgba(255, 255, 255, 0.9)", width: "100%", maxWidth: "380px", padding: "30px", borderRadius: "25px", textAlign: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.2)" },
   title: { fontSize: "24px", marginBottom: "10px", color: "#1b5e20", fontWeight: "700" },
   subtitle: { fontSize: "16px", marginBottom: "8px" },
   desc: { fontSize: "14px", color: "#444", marginBottom: "10px", fontFamily: "serif" },
